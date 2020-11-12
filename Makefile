@@ -32,7 +32,7 @@ TRAEFIK_ENVS := \
 TRAEFIK_MOUNT := -v "$(CURDIR)/$(BIND_DIR):/go/src/github.com/traefik/traefik/$(BIND_DIR)"
 DOCKER_RUN_OPTS := $(TRAEFIK_ENVS) $(TRAEFIK_MOUNT) "$(TRAEFIK_DEV_IMAGE)"
 DOCKER_NON_INTERACTIVE ?= false
-DOCKER_RUN_TRAEFIK := docker run --add-host=host.docker.internal:127.0.0.1 $(INTEGRATION_OPTS) $(if $(DOCKER_NON_INTERACTIVE), , -it) $(DOCKER_RUN_OPTS)
+DOCKER_RUN_TRAEFIK := docker run  --network=host -e http_proxy=$(HTTP_PROXY) -e https_proxy=$(HTTP_PROXY) --add-host=host.docker.internal:127.0.0.1 $(INTEGRATION_OPTS) $(if $(DOCKER_NON_INTERACTIVE), , -it) $(DOCKER_RUN_OPTS)
 DOCKER_RUN_TRAEFIK_NOTTY := docker run $(INTEGRATION_OPTS) $(if $(DOCKER_NON_INTERACTIVE), , -i) $(DOCKER_RUN_OPTS)
 
 PRE_TARGET ?= build-dev-image
@@ -43,11 +43,11 @@ default: binary
 
 ## Build Dev Docker image
 build-dev-image: dist
-	docker build $(DOCKER_BUILD_ARGS) -t "$(TRAEFIK_DEV_IMAGE)" -f build.Dockerfile .
+	docker build $(DOCKER_BUILD_ARGS) -t "$(TRAEFIK_DEV_IMAGE)" -f build.Dockerfile . --network=host --build-arg http_proxy=$(HTTP_PROXY) --build-arg https_proxy=$(HTTP_PROXY)
 
 ## Build Dev Docker image without cache
 build-dev-image-no-cache: dist
-	docker build --no-cache -t "$(TRAEFIK_DEV_IMAGE)" -f build.Dockerfile .
+	docker build --no-cache -t "$(TRAEFIK_DEV_IMAGE)" -f build.Dockerfile . --network=host --build-arg http_proxy=$(HTTP_PROXY) --build-arg https_proxy=$(HTTP_PROXY)
 
 ## Create the "dist" directory
 dist:
@@ -55,7 +55,7 @@ dist:
 
 ## Build WebUI Docker image
 build-webui-image:
-	docker build -t traefik-webui --build-arg ARG_PLATFORM_URL=$(PLATFORM_URL) -f webui/Dockerfile webui
+	docker build -t traefik-webui --build-arg ARG_PLATFORM_URL=$(PLATFORM_URL) --network=host --build-arg http_proxy=$(HTTP_PROXY) --build-arg https_proxy=$(HTTP_PROXY) -f webui/Dockerfile webui
 
 ## Generate WebUI
 generate-webui: build-webui-image
@@ -109,11 +109,11 @@ validate: $(PRE_TARGET)
 ## Clean up static directory and build a Docker Traefik image
 build-image: binary
 	rm -rf static
-	docker build -t $(TRAEFIK_IMAGE) .
+	docker build -t $(TRAEFIK_IMAGE) . --network=host --build-arg http_proxy=$(HTTP_PROXY) --build-arg https_proxy=$(HTTP_PROXY)
 
 ## Build a Docker Traefik image
 build-image-dirty: binary
-	docker build -t $(TRAEFIK_IMAGE) .
+	docker build -t $(TRAEFIK_IMAGE) . --network=host --build-arg http_proxy=$(HTTP_PROXY) --build-arg https_proxy=$(HTTP_PROXY)
 
 ## Start a shell inside the build env
 shell: build-dev-image
